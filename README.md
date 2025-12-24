@@ -20,8 +20,8 @@ You’ve probably seen:
 
 > **Your LLM is only as good as the data you give it.**
 
-This repo is a **minimal, honest demo** of what happens when you feed an LLM
-*curated wisdom* instead of scraped slop.
+This repo is a **minimal, deliberately small and inspectable, honest demo** of what happens when you feed an LLM
+*curated wisdom* instead of scraped slop. If you want the full 300k+ node packs, email john@awakened-intelligence.com
 
 ---
 
@@ -324,3 +324,4 @@ Commercial use of the full corpus requires licensing.
 Built By
 Awakened Intelligence
 Always and Forever 🦁
+
