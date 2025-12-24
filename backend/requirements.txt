@@ -1,0 +1,13 @@
+# ADS Wisdom Demo - Dependencies
+# Awakened Intelligence
+
+# Core API
+fastapi>=0.100.0
+uvicorn[standard]>=0.22.0
+pydantic>=2.0.0
+
+# Optional: Add your LLM provider
+# openai>=1.0.0
+# anthropic>=0.18.0
+# ollama>=0.1.0
+

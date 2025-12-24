@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ADS Wisdom Demo — Awakened Intelligence</title>
+  <meta name="description" content="See the difference between baseline AI responses and Awakened Data Standard (ADS) enhanced responses." />
+  <link rel="stylesheet" href="assets/css/main.css" />
+  <link rel="stylesheet" href="assets/css/ads_demo.css" />
+  <script defer src="assets/js/ads_demo.js"></script>
+</head>
+<body class="app-body">
+
+  <!-- Top Bar -->
+  <header class="top-bar">
+    <div class="top-bar-content">
+      <div class="logo">
+        <span class="logo-text">Awakened Intelligence</span>
+        <span class="status-pill">ADS Wisdom Demo</span>
+      </div>
+      <div class="top-bar-actions">
+        <a href="https://github.com/holmanholdings" target="_blank" class="icon-btn" title="GitHub">⭐</a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Grid -->
+  <main class="dashboard-grid">
+
+    <!-- Question Selector Card -->
+    <section class="card question-selector-card" style="grid-column: span 2;">
+      <div class="card-header">
+        <h2 class="card-title">🎯 Select Demo Question</h2>
+        <span class="card-badge" id="questionCountBadge">Loading...</span>
+      </div>
+      <div class="card-body">
+        <p class="card-intro-text">
+          These questions are designed to show the difference between a <strong>baseline AI response</strong> 
+          and an <strong>ADS-enhanced response</strong> using our curated wisdom nodes.
+        </p>
+
+        <div id="questionList" class="question-list">
+          <!-- radio buttons injected by ads_demo.js -->
+        </div>
+
+        <div class="question-actions">
+          <button id="runDemoBtn" class="btn btn-primary">
+            <span class="btn-icon">▶</span>
+            Run Comparison
+          </button>
+          <span id="demoStatus" class="status-pill status-idle">Idle</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Baseline Answer Card -->
+    <section class="card baseline-card">
+      <div class="card-header">
+        <h2 class="card-title">❌ Baseline Response</h2>
+        <span class="card-badge baseline-badge">No Wisdom Context</span>
+      </div>
+      <div class="card-body">
+        <div id="baselineAnswer" class="answer-text">
+          <p class="placeholder-text">Run the demo to see the baseline answer.</p>
+        </div>
+        <div class="answer-metrics">
+          <span id="baselineTokens" class="metric-pill">Tokens: —</span>
+          <span id="baselineTime" class="metric-pill">Time: —</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ADS Answer Card -->
+    <section class="card ads-card">
+      <div class="card-header">
+        <h2 class="card-title">✅ ADS-Enhanced Response</h2>
+        <span class="card-badge ads-badge" id="packBadge">Using Wisdom</span>
+        <span id="adsNodesHeader" class="metric-pill metric-pill-small">Nodes: —</span>
+      </div>
+      <div class="card-body">
+        <div id="adsAnswer" class="answer-text">
+          <p class="placeholder-text">Run the demo to see the ADS-augmented answer.</p>
+        </div>
+        <div class="answer-metrics">
+          <span id="adsTokens" class="metric-pill">Tokens: —</span>
+          <span id="adsTime" class="metric-pill">Time: —</span>
+          <span id="adsNodes" class="metric-pill metric-highlight">Nodes used: —</span>
+        </div>
+
+        <div class="wisdom-context" id="wisdomContextSection">
+          <h3 class="context-title">💡 Wisdom Context</h3>
+          <ul id="wisdomList" class="context-list">
+            <!-- context bullets injected by ads_demo.js -->
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- Engineer View Card -->
+    <section class="card engineer-card" style="grid-column: span 2;">
+      <div class="card-header">
+        <h2 class="card-title">📊 Engineer View (Raw Metrics)</h2>
+        <span class="card-badge">JSON Output</span>
+        <button id="toggleEngineerView" class="btn btn-secondary btn-small">Show/Hide</button>
+      </div>
+      <div class="card-body engineer-body" id="engineerBody">
+        <pre id="engineerMetrics" class="engineer-metrics-pre">
+Select a question and run the demo to see metrics.
+        </pre>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="action-dock">
+    <div class="dock-content">
+      <div class="dock-info">
+        <span class="dock-label">ADS Wisdom Demo</span>
+        <span class="dock-version">Golden Sample Pack • 100 nodes</span>
+      </div>
+      <div class="dock-actions">
+        <span class="dock-badge">Cathedral-Grade Data 🏛️</span>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>
+

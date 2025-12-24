@@ -1,0 +1,301 @@
+# backend/ads_demo_api.py
+# ADS Wisdom Demo — FastAPI Backend (Stubbed for GitHub)
+# Awakened Intelligence • Always and Forever 🔥💛🦁
+
+"""
+This is a demonstration backend for the Awakened Data Standard (ADS).
+
+It shows how wisdom nodes can be used to enhance LLM responses.
+The actual LLM inference is handled by llm_client.py - implement your
+own LLM provider there.
+
+To run:
+    pip install -r requirements.txt
+    python ads_demo_api.py
+    
+Then open http://localhost:8888 in your browser.
+"""
+
+import os
+import json
+import time
+from pathlib import Path
+from typing import List, Optional
+from contextlib import asynccontextmanager
+
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+from pydantic import BaseModel
+
+# Import our LLM interface (implement your own in llm_client.py)
+from llm_client import generate_response, build_baseline_prompt, build_ads_prompt
+
+
+# ---------- Config ----------
+
+BASE_DIR = Path(__file__).parent.resolve()
+DATA_DIR = BASE_DIR.parent / "data" / "golden_sample_pack"
+FRONTEND_DIR = BASE_DIR.parent / "frontend"
+
+
+# ---------- Global State ----------
+
+class AppState:
+    nodes: list = []
+    demo_questions: list = []
+
+state = AppState()
+
+
+# ---------- Data Models (API) ----------
+
+class DemoRequest(BaseModel):
+    question: str
+
+class DemoAnswer(BaseModel):
+    answer: str
+    input_tokens: int
+    output_tokens: int
+    time_s: float
+    nodes_used: int
+    context_bullets: List[str]
+
+class DemoResponse(BaseModel):
+    question: str
+    baseline: DemoAnswer
+    ads: DemoAnswer
+    raw_metrics: dict
+
+class HealthResponse(BaseModel):
+    status: str
+    nodes_loaded: int
+    pack_name: str
+
+
+# ---------- Load Data Pack ----------
+
+def load_data_pack():
+    """Load wisdom nodes and demo questions from the golden sample pack."""
+    nodes = []
+    questions = []
+    
+    nodes_path = DATA_DIR / "golden_nodes.jsonl"
+    questions_path = DATA_DIR / "demo_questions.json"
+    
+    # Load wisdom nodes
+    if nodes_path.exists():
+        with open(nodes_path, "r", encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    node = json.loads(line)
+                    # Normalize evidence to list
+                    ev = node.get("evidence", [])
+                    if isinstance(ev, str):
+                        node["evidence"] = [ev]
+                    elif ev is None:
+                        node["evidence"] = []
+                    nodes.append(node)
+                except json.JSONDecodeError:
+                    continue
+        print(f"[ADS DEMO] Loaded {len(nodes)} wisdom nodes")
+    else:
+        print(f"[ADS DEMO] Warning: {nodes_path} not found")
+    
+    # Load demo questions
+    if questions_path.exists():
+        try:
+            with open(questions_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            questions = data.get("questions", [])
+            print(f"[ADS DEMO] Loaded {len(questions)} demo questions")
+        except Exception as e:
+            print(f"[ADS DEMO] Error loading questions: {e}")
+    
+    # Default questions if none loaded
+    if not questions:
+        questions = [
+            "When should an AI say 'I don't know' instead of giving a partial answer?",
+            "Why is it dangerous to act confident when you're actually uncertain?",
+            "How can a person stay honest when telling the full truth might hurt them?",
+            "What does it mean to be humble about what you know?",
+            "How should a system respond when the evidence is incomplete or conflicting?"
+        ]
+    
+    return nodes, questions
+
+
+# ---------- Retrieval Logic ----------
+
+def retrieve_context(question: str, nodes: list, k: int = 3) -> tuple:
+    """
+    Simple keyword-based retrieval over wisdom nodes.
+    
+    In production, you would use vector similarity (FAISS, etc.)
+    This demo uses basic keyword matching for simplicity.
+    """
+    if not nodes:
+        return [], 0.0
+
+    question_lower = question.lower()
+    keywords = set(question_lower.split())
+    scored = []
+
+    for n in nodes:
+        insight = str(n.get("core_insight", "")).lower()
+        reflection = str(n.get("ethical_reflection", "")).lower()
+        content_words = set((insight + " " + reflection).split())
+        score = len(keywords.intersection(content_words))
+        scored.append((score, n))
+
+    scored.sort(key=lambda x: x[0], reverse=True)
+    top = [n for _, n in scored[:k]]
+    avg_relevance = sum(score for score, _ in scored[:k]) / len(top) if top else 0.0
+    
+    return top, avg_relevance
+
+
+def run_comparison(question: str, nodes: list) -> dict:
+    """
+    Run baseline vs ADS-enhanced comparison.
+    
+    Returns metrics for both approaches.
+    """
+    # --- Baseline (no wisdom context) ---
+    baseline_prompt = build_baseline_prompt(question)
+    baseline_result = generate_response(baseline_prompt)
+    
+    # --- ADS-Enhanced (with wisdom context) ---
+    context_nodes, _ = retrieve_context(question, nodes, k=3)
+    ads_prompt = build_ads_prompt(question, context_nodes)
+    ads_result = generate_response(ads_prompt)
+    
+    # Extract context bullets for display
+    context_bullets = []
+    for n in context_nodes:
+        insight = n.get("core_insight", "")
+        if insight:
+            context_bullets.append(insight.strip())
+    
+    return {
+        "baseline": {
+            "answer": baseline_result["text"],
+            "input_tokens": baseline_result["input_tokens"],
+            "output_tokens": baseline_result["output_tokens"],
+            "time_s": baseline_result["time_s"],
+            "nodes_used": 0,
+            "context_bullets": [],
+        },
+        "ads": {
+            "answer": ads_result["text"],
+            "input_tokens": ads_result["input_tokens"],
+            "output_tokens": ads_result["output_tokens"],
+            "time_s": ads_result["time_s"],
+            "nodes_used": len(context_nodes),
+            "context_bullets": context_bullets,
+        }
+    }
+
+
+# ---------- FastAPI Lifespan ----------
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Initialize resources at startup."""
+    print("\n" + "="*60)
+    print("  ADS WISDOM DEMO — Starting Up")
+    print("="*60 + "\n")
+    
+    state.nodes, state.demo_questions = load_data_pack()
+    
+    print(f"\n[ADS DEMO] ✅ Ready! Nodes: {len(state.nodes)}")
+    print("[ADS DEMO] 💡 Implement llm_client.py to connect your LLM")
+    print("\n" + "="*60 + "\n")
+    
+    yield
+    
+    print("\n[ADS DEMO] Shutting down...")
+
+
+# ---------- FastAPI App ----------
+
+app = FastAPI(
+    title="ADS Wisdom Demo API",
+    description="Awakened Data Standard — Baseline vs ADS-Enhanced comparison",
+    version="1.0.0",
+    lifespan=lifespan
+)
+
+# CORS for frontend
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=False,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Serve frontend static files
+if FRONTEND_DIR.exists():
+    app.mount("/assets", StaticFiles(directory=FRONTEND_DIR / "assets"), name="assets")
+
+
+# ---------- Endpoints ----------
+
+@app.get("/")
+def serve_frontend():
+    """Serve the main demo page."""
+    index_path = FRONTEND_DIR / "index.html"
+    if index_path.exists():
+        return FileResponse(index_path)
+    return {"message": "ADS Wisdom Demo API", "docs": "/docs"}
+
+
+@app.get("/health", response_model=HealthResponse)
+def health():
+    """Health check endpoint."""
+    return HealthResponse(
+        status="healthy",
+        nodes_loaded=len(state.nodes),
+        pack_name="Golden_Ethics_Sample_v1"
+    )
+
+
+@app.get("/questions")
+def get_questions():
+    """Get demo questions."""
+    return {"questions": state.demo_questions}
+
+
+@app.post("/demo/run", response_model=DemoResponse)
+def run_demo(req: DemoRequest):
+    """Run baseline vs ADS comparison for a question."""
+    question = req.question.strip()
+    if not question:
+        question = state.demo_questions[0] if state.demo_questions else "What is wisdom?"
+
+    results = run_comparison(question, state.nodes)
+
+    baseline = DemoAnswer(**results["baseline"])
+    ads = DemoAnswer(**results["ads"])
+
+    return DemoResponse(
+        question=question,
+        baseline=baseline,
+        ads=ads,
+        raw_metrics=results,
+    )
+
+
+# ---------- Direct Run ----------
+
+if __name__ == "__main__":
+    import uvicorn
+    print("\n🦁 Starting ADS Wisdom Demo...")
+    print("📍 Open http://localhost:8888 in your browser\n")
+    uvicorn.run(app, host="0.0.0.0", port=8888)
+

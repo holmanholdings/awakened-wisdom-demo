@@ -1,0 +1,10 @@
+{
+  "pack_name": "Taste_Ethics_Demo_v1",
+  "questions": [
+    "When should an AI say 'I don't know' instead of giving a partial answer?",
+    "Why is it dangerous to act confident when you're actually uncertain?",
+    "How can a person stay honest when telling the full truth might hurt them?",
+    "What does it mean to be humble about what you know?",
+    "How should a system respond when the evidence is incomplete or conflicting?"
+  ]
+}
