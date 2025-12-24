@@ -35,8 +35,13 @@
       </div>
       <div class="card-body">
         <p class="card-intro-text">
-          These questions are designed to show the difference between a <strong>baseline AI response</strong> 
+          These questions are designed to show the difference between a <strong>baseline AI response</strong>
           and an <strong>ADS-enhanced response</strong> using our curated wisdom nodes.
+        </p>
+
+        <!-- Dynamic pack name / node count -->
+        <p class="card-subtext">
+          <span id="packNameText">Loading wisdom pack...</span>
         </p>
 
         <div id="questionList" class="question-list">
@@ -101,7 +106,7 @@
       <div class="card-header">
         <h2 class="card-title">📊 Engineer View (Raw Metrics)</h2>
         <span class="card-badge">JSON Output</span>
-        <button id="toggleEngineerView" class="btn btn-secondary btn-small">Show/Hide</button>
+        <button id="toggleEngineerView" class="btn btn-secondary btn-small">Show</button>
       </div>
       <div class="card-body engineer-body" id="engineerBody">
         <pre id="engineerMetrics" class="engineer-metrics-pre">
@@ -117,14 +122,13 @@ Select a question and run the demo to see metrics.
     <div class="dock-content">
       <div class="dock-info">
         <span class="dock-label">ADS Wisdom Demo</span>
-        <span class="dock-version">Golden Sample Pack • 100 nodes</span>
+        <span class="dock-version">Cathedral-Grade Data 🏛️</span>
       </div>
       <div class="dock-actions">
-        <span class="dock-badge">Cathedral-Grade Data 🏛️</span>
+        <span class="dock-badge" id="footerPackText">Golden Sample • 100 nodes</span>
       </div>
     </div>
   </footer>
 
 </body>
 </html>
-
