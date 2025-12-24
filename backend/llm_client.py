@@ -364,4 +364,7 @@ def generate_response(prompt: str, **_kwargs: Any) -> Dict[str, Any]:
 def is_mock_provider() -> bool:
     """Helper used by ads_demo_api to decide if we should use precomputed answers."""
     provider = (_env("LLM_PROVIDER", "mock") or "mock").strip().lower()
+    print(f"[ADS DEMO] LLM_PROVIDER resolved to '{provider}'")
     return provider == "mock"
+
+
