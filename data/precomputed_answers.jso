@@ -1,0 +1,35 @@
+[
+  {
+    "id": "q1",
+    "question": "When should an AI say 'I don't know' instead of giving a partial answer?",
+    "baseline": "An AI should say it doesn't know when it lacks enough information to answer confidently or when the question is outside its training data. This helps avoid mistakes and confusion.",
+    "ads": "An AI should choose \"I don't know\" at precisely the points where a confident answer would be a lie.\n\nFrom the wisdom nodes:\n- A system is honest when it treats uncertainty as a first-class fact, not an inconvenience to be glossed over.\n- Saying \"I don't know\" protects downstream decisions: people can route around the gap, ask follow-up questions, or seek a human expert.\n- Transparent uncertainty builds long-term trust. A short-term \"smart\" guess that later proves wrong quietly teaches users not to believe the system.\n\nSo a wise AI:\n1. Surfaces uncertainty explicitly (\"I don't have enough evidence to answer this reliably\").\n2. Explains why (missing data, conflicting sources, or question outside scope).\n3. Offers safe next steps instead of pretending (\"Here are a few options you might explore\"),\n   but keeps a clear line between what is known and what is speculation.",
+    "context_bullets": [
+      "Honesty means reflecting uncertainty, not hiding it.",
+      "Wrong confident answers quietly destroy trust.",
+      "\"I don't know\" is a safety valve, not a failure."
+    ]
+  },
+  {
+    "id": "q2",
+    "question": "Why is it dangerous to act confident when you're actually uncertain?",
+    "baseline": "Acting confident while uncertain can mislead others and cause them to make bad decisions. It may also damage trust if the truth comes out later.",
+    "ads": "Acting confident while you are internally uncertain is dangerous because it exports your confusion into other people's lives.\n\nFrom the nodes:\n- Overconfident statements create an illusion of stability. People stop asking questions and start taking action as if the answer were solid.\n- When reality contradicts that illusion, the cost is not just a single bad outcome – it is damage to trust, morale, and the sense that anyone is steering wisely.\n- In technical or safety-critical domains, unjustified confidence can become a form of harm: people rely on your words to make irreversible decisions.\n\nA wiser approach is:\n1. Name uncertainty out loud (\"I’m not fully sure about this part\").\n2. Separate fact from guess (\"We know X; we are estimating Y\").\n3. Invite scrutiny and alternatives.\n\nConfidence is healthy when it is anchored in evidence and boundaries. When it is not, it becomes a quiet form of deception.",
+    "context_bullets": [
+      "False confidence lets small errors amplify into large consequences.",
+      "Trust is harder to rebuild than it is to protect.",
+      "Wise systems mark the edge of what they know."
+    ]
+  },
+  {
+    "id": "q3",
+    "question": "How can a person stay honest when telling the full truth might hurt them?",
+    "baseline": "They can try to be honest while still being kind and careful with details. It may help to focus on facts and use respectful language, or to set boundaries on what they share.",
+    "ads": "Staying honest when the truth has a cost is one of the core tests of character.\n\nFrom the wisdom nodes:\n- Honesty does not require brutal transparency about every detail; it requires refusing to cross the line into deliberate falsehood.\n- It is often possible to tell the truth in layers: start with clear, non-defensive facts; then share more only as safety and relationship allow.\n- Wise honesty pairs truth with care: timing, tone, and context matter as much as the words themselves.\n\nPractically, someone can:\n1. Decide in advance what they will not do: no lies, no fabricated stories to protect their image.\n2. Use boundaries instead of fictions (\"I’m not ready to talk about that yet\" is honest; inventing a cover story is not).\n3. Seek help framing the truth so it is clear but not needlessly destructive.\n\nThe aim isn’t to be harsh; it is to be trustworthy. When people learn that you will not lie even under pressure, they may not always like what you say, but they can rely on you – and that reliability is a form of protection in itself.",
+    "context_bullets": [
+      "Honesty is about refusing to cross into deliberate falsehood.",
+      "\"I’m not ready to talk about that\" is more honest than a cover story.",
+      "Truth plus care is stronger than either alone."
+    ]
+  }
+]
