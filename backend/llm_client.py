@@ -1,45 +1,26 @@
 """
-LLM Client for Awakened Wisdom Demo (no-code-edit setup)
+LLM Client for Awakened Wisdom Demo
 
-✅ Goal: demo runners should NOT edit this file.
-They should only set environment variables (or a .env file).
+This file is designed so that demo runners NEVER have to edit it.
 
-Supported providers:
-- OpenAI (Responses API)          LLM_PROVIDER=openai
-- Anthropic (Messages API)        LLM_PROVIDER=anthropic
-- OpenRouter (OpenAI compat)      LLM_PROVIDER=openrouter
-- Ollama (local)                  LLM_PROVIDER=ollama
-- Mock (no network)               LLM_PROVIDER=mock
-
-Where to put config:
-- backend/.env   (recommended)
-- or repo root .env
+Configuration comes from:
+- backend/.env   (simple text file next to this file)
 - or real environment variables
 
-Minimal .env examples:
+Supported providers via LLM_PROVIDER:
+- openai     (OpenAI Responses API)
+- anthropic  (Anthropic Messages API)
+- openrouter (OpenRouter chat completions)
+- ollama     (local LLM via Ollama)
+- mock       (default; uses precomputed answers in the backend)
 
-# OpenAI
-LLM_PROVIDER=openai
-OPENAI_API_KEY=sk-...
-LLM_MODEL=gpt-4o
-
-# Anthropic
-LLM_PROVIDER=anthropic
-ANTHROPIC_API_KEY=...
-LLM_MODEL=claude-3-5-sonnet-latest
-
-# OpenRouter
-LLM_PROVIDER=openrouter
-OPENROUTER_API_KEY=...
-LLM_MODEL=anthropic/claude-3.5-sonnet
-
-# Ollama (local)
-LLM_PROVIDER=ollama
-OLLAMA_BASE_URL=http://localhost:11434
-LLM_MODEL=llama3.1
-
-Return format (expected by demo):
-{"text": "...", "input_tokens": int|None, "output_tokens": int|None, "time_s": float}
+Expected return format (used by ads_demo_api):
+{
+    "text": str,
+    "input_tokens": int | None,
+    "output_tokens": int | None,
+    "time_s": float
+}
 """
 
 from __future__ import annotations
@@ -48,20 +29,28 @@ import json
 import os
 import time
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any, Dict, Optional
 from urllib.request import Request, urlopen
 from urllib.error import URLError, HTTPError
 
 
-# -------------------------
-# Small .env loader (stdlib)
-# -------------------------
-def _load_dotenv_file(path: str) -> None:
-    if not os.path.exists(path):
+# ---------------------------------------------------------------------------
+# Simple .env loader (backend/.env only, no guessing)
+# ---------------------------------------------------------------------------
+
+def _load_backend_env() -> None:
+    """Load key=value pairs from backend/.env into os.environ (if set)."""
+    this_dir = Path(__file__).resolve().parent
+    env_path = this_dir / ".env"
+    if not env_path.exists():
+        print("[ADS DEMO] No backend/.env found – using environment variables or mock mode")
         return
+
+    print(f"[ADS DEMO] Loading backend/.env from {env_path}")
     try:
-        with open(path, "r", encoding="utf-8") as f:
-            for raw in f.readlines():
+        with env_path.open("r", encoding="utf-8") as f:
+            for raw in f:
                 line = raw.strip()
                 if not line or line.startswith("#"):
                     continue
@@ -73,15 +62,22 @@ def _load_dotenv_file(path: str) -> None:
                 # Do not override real env vars
                 if k and (k not in os.environ):
                     os.environ[k] = v
-    except Exception:
-        # Silent: demo should still run even if dotenv parsing fails
-        return
+    except Exception as e:
+        print(f"[ADS DEMO] Warning: failed to parse backend/.env: {e}")
 
 
-# Load backend/.env first, then repo-root .env
-_THIS_DIR = os.path.dirname(os.path.abspath(__file__))
-_load_dotenv_file(os.path.join(_THIS_DIR, ".env"))
-_load_dotenv_file(os.path.abspath(os.path.join(_THIS_DIR, "..", ".env")))
+_load_backend_env()
+
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+def _env(name: str, default: Optional[str] = None) -> Optional[str]:
+    v = os.environ.get(name)
+    if v is None or v == "":
+        return default
+    return v
 
 
 @dataclass
@@ -90,13 +86,6 @@ class LLMResult:
     input_tokens: Optional[int]
     output_tokens: Optional[int]
     time_s: float
-
-
-def _env(name: str, default: Optional[str] = None) -> Optional[str]:
-    v = os.environ.get(name)
-    if v is None or v == "":
-        return default
-    return v
 
 
 def _post_json(url: str, headers: Dict[str, str], payload: Dict[str, Any], timeout_s: int = 90) -> Dict[str, Any]:
@@ -116,14 +105,14 @@ def _safe_int(x: Any) -> Optional[int]:
         return None
 
 
-# -------------------------
-# Providers
-# -------------------------
+# ---------------------------------------------------------------------------
+# Provider calls
+# ---------------------------------------------------------------------------
+
 def _call_openai(prompt: str) -> LLMResult:
-    # OpenAI Responses API endpoint
     api_key = _env("OPENAI_API_KEY")
     if not api_key:
-        raise RuntimeError("Missing OPENAI_API_KEY. Put it in backend/.env (recommended) or your environment.")
+        raise RuntimeError("Missing OPENAI_API_KEY in backend/.env or environment.")
 
     model = _env("LLM_MODEL", "gpt-4o")
     temperature = float(_env("LLM_TEMPERATURE", "0.2"))
@@ -135,7 +124,7 @@ def _call_openai(prompt: str) -> LLMResult:
 
     payload: Dict[str, Any] = {
         "model": model,
-        "input": prompt,  # string input is allowed
+        "input": prompt,
         "temperature": temperature,
         "max_output_tokens": max_out,
     }
@@ -146,8 +135,6 @@ def _call_openai(prompt: str) -> LLMResult:
     data = _post_json(url, headers, payload)
     dt = time.time() - t0
 
-    # Parse output text (Responses format)
-    # output -> [ { type:"message", content:[ {type:"output_text", text:"..."} ] } ]
     text_parts = []
     for item in data.get("output", []) or []:
         for c in item.get("content", []) or []:
@@ -159,13 +146,18 @@ def _call_openai(prompt: str) -> LLMResult:
     input_tokens = _safe_int(usage.get("input_tokens"))
     output_tokens = _safe_int(usage.get("output_tokens"))
 
-    return LLMResult(text=text or "(No text returned from OpenAI.)", input_tokens=input_tokens, output_tokens=output_tokens, time_s=dt)
+    return LLMResult(
+        text=text or "(No text returned from OpenAI.)",
+        input_tokens=input_tokens,
+        output_tokens=output_tokens,
+        time_s=dt,
+    )
 
 
 def _call_anthropic(prompt: str) -> LLMResult:
     api_key = _env("ANTHROPIC_API_KEY")
     if not api_key:
-        raise RuntimeError("Missing ANTHROPIC_API_KEY. Put it in backend/.env (recommended) or your environment.")
+        raise RuntimeError("Missing ANTHROPIC_API_KEY in backend/.env or environment.")
 
     model = _env("LLM_MODEL", "claude-3-5-sonnet-latest")
     temperature = float(_env("LLM_TEMPERATURE", "0.2"))
@@ -175,7 +167,6 @@ def _call_anthropic(prompt: str) -> LLMResult:
     url = _env("ANTHROPIC_BASE_URL", "https://api.anthropic.com/v1/messages")
     headers = {
         "x-api-key": api_key,
-        # Anthropic requires a version header
         "anthropic-version": _env("ANTHROPIC_VERSION", "2023-06-01"),
     }
 
@@ -192,8 +183,6 @@ def _call_anthropic(prompt: str) -> LLMResult:
     data = _post_json(url, headers, payload)
     dt = time.time() - t0
 
-    # Parse text
-    # content: [ { type:"text", text:"..." } ]
     text_parts = []
     for c in data.get("content", []) or []:
         if isinstance(c, dict) and c.get("type") == "text" and "text" in c:
@@ -204,13 +193,18 @@ def _call_anthropic(prompt: str) -> LLMResult:
     input_tokens = _safe_int(usage.get("input_tokens"))
     output_tokens = _safe_int(usage.get("output_tokens"))
 
-    return LLMResult(text=text or "(No text returned from Anthropic.)", input_tokens=input_tokens, output_tokens=output_tokens, time_s=dt)
+    return LLMResult(
+        text=text or "(No text returned from Anthropic.)",
+        input_tokens=input_tokens,
+        output_tokens=output_tokens,
+        time_s=dt,
+    )
 
 
 def _call_openrouter(prompt: str) -> LLMResult:
     api_key = _env("OPENROUTER_API_KEY")
     if not api_key:
-        raise RuntimeError("Missing OPENROUTER_API_KEY. Put it in backend/.env (recommended) or your environment.")
+        raise RuntimeError("Missing OPENROUTER_API_KEY in backend/.env or environment.")
 
     model = _env("LLM_MODEL", "openai/gpt-4o-mini")
     temperature = float(_env("LLM_TEMPERATURE", "0.2"))
@@ -246,7 +240,12 @@ def _call_openrouter(prompt: str) -> LLMResult:
     input_tokens = _safe_int(usage.get("prompt_tokens"))
     output_tokens = _safe_int(usage.get("completion_tokens"))
 
-    return LLMResult(text=text or "(No text returned from OpenRouter.)", input_tokens=input_tokens, output_tokens=output_tokens, time_s=dt)
+    return LLMResult(
+        text=text or "(No text returned from OpenRouter.)",
+        input_tokens=input_tokens,
+        output_tokens=output_tokens,
+        time_s=dt,
+    )
 
 
 def _call_ollama(prompt: str) -> LLMResult:
@@ -280,19 +279,21 @@ def _call_ollama(prompt: str) -> LLMResult:
     except Exception:
         text = ""
 
-    # Ollama returns eval counts in some builds
     input_tokens = _safe_int(data.get("prompt_eval_count"))
     output_tokens = _safe_int(data.get("eval_count"))
 
-    return LLMResult(text=text or "(No text returned from Ollama.)", input_tokens=input_tokens, output_tokens=output_tokens, time_s=dt)
+    return LLMResult(
+        text=text or "(No text returned from Ollama.)",
+        input_tokens=input_tokens,
+        output_tokens=output_tokens,
+        time_s=dt,
+    )
 
 
 def _call_mock(prompt: str) -> LLMResult:
-    # For “it runs instantly” demos without keys.
-    # You can improve this later by loading precomputed answers from a file.
     t0 = time.time()
     text = (
-        "MOCK MODE is enabled (LLM_PROVIDER=mock).\n\n"
+        "MOCK MODE is enabled (LLM_PROVIDER=mock or missing).\n\n"
         "To make this demo fully interactive, set LLM_PROVIDER + an API key in backend/.env.\n"
         "Example:\n"
         "  LLM_PROVIDER=openai\n"
@@ -304,16 +305,29 @@ def _call_mock(prompt: str) -> LLMResult:
     return LLMResult(text=text, input_tokens=None, output_tokens=None, time_s=dt)
 
 
-# -------------------------
-# Public function (used by demo backend)
-# -------------------------
+# ---------------------------------------------------------------------------
+# Public API
+# ---------------------------------------------------------------------------
+
+def is_mock_provider() -> bool:
+  """Helper used by ads_demo_api to decide if we should use precomputed answers."""
+  provider = (_env("LLM_PROVIDER", "mock") or "mock").strip().lower()
+  print(f"[ADS DEMO] LLM_PROVIDER resolved to '{provider}'")
+  return provider == "mock"
+
+
 def generate_response(prompt: str, **_kwargs: Any) -> Dict[str, Any]:
     """
     Called by the demo backend.
-    Returns:
-      {"text": "...", "input_tokens": int|None, "output_tokens": int|None, "time_s": float}
+
+    Returns a dict with:
+    - text
+    - input_tokens
+    - output_tokens
+    - time_s
     """
     provider = (_env("LLM_PROVIDER", "mock") or "mock").strip().lower()
+    print(f"[ADS DEMO] generate_response using provider='{provider}'")
 
     try:
         if provider == "openai":
@@ -360,11 +374,3 @@ def generate_response(prompt: str, **_kwargs: Any) -> Dict[str, Any]:
         "output_tokens": r.output_tokens,
         "time_s": r.time_s,
     }
-
-def is_mock_provider() -> bool:
-    """Helper used by ads_demo_api to decide if we should use precomputed answers."""
-    provider = (_env("LLM_PROVIDER", "mock") or "mock").strip().lower()
-    print(f"[ADS DEMO] LLM_PROVIDER resolved to '{provider}'")
-    return provider == "mock"
-
-
