@@ -360,3 +360,8 @@ def generate_response(prompt: str, **_kwargs: Any) -> Dict[str, Any]:
         "output_tokens": r.output_tokens,
         "time_s": r.time_s,
     }
+
+def is_mock_provider() -> bool:
+    """Helper used by ads_demo_api to decide if we should use precomputed answers."""
+    provider = (_env("LLM_PROVIDER", "mock") or "mock").strip().lower()
+    return provider == "mock"
