@@ -1,3 +1,26 @@
+# ADS Wisdom Demo - Backend Dependencies
+# Awakened Intelligence
+
+# Core API stack
+fastapi>=0.100.0
+uvicorn[standard]>=0.22.0
+pydantic>=2.0.0
+
+# LLM client uses only Python standard library (urllib),
+# so no provider SDKs are required to run the demo.
+# If you prefer SDKs, you *may* add them here for your own use:
+# openai>=1.0.0
+# anthropic>=0.18.0
+# httpx>=0.27.0
+That keeps installs fast and removes any confusion about “do I need openai/anthropic pip packages?”.
+
+2️⃣ New README.md (drop-in)
+This version assumes your new llm_client.py with multi-provider + env-based config is in place, and it no longer tells people to edit Python code.
+
+Replace your current root README.md with this:
+
+md
+Copy code
 # 🦁 Awakened Wisdom Demo
 
 **Stop RAG-ing on Slop. Start using Cathedral-Grade Data.**
@@ -9,14 +32,16 @@
 
 ## The Problem
 
-Most RAG systems retrieve garbage and feed it to LLMs. The result? Hallucinations with extra steps.
+Most RAG systems retrieve garbage and feed it to LLMs. The result?  
+Hallucinations with extra steps.
 
-You've seen it:
-- Scraped web pages with ads mixed into "context"
+You’ve seen it:
+
+- Scraped web pages with ads mixed into “context”
 - Academic papers summarized into meaningless abstractions
-- "Knowledge bases" that are just glorified keyword indexes
+- “Knowledge bases” that are just glorified keyword indexes
 
-**Your LLM is only as good as the data you give it.**
+> **Your LLM is only as good as the data you give it.**
 
 ---
 
@@ -26,193 +51,225 @@ We built something different. Every node in our corpus is:
 
 ✅ **Provenance-tracked** — Full lineage back to the source  
 ✅ **Evidence-backed** — Direct quotes with exact locators  
-✅ **Ethically-reflective** — "Warmth" scores for moral reasoning  
+✅ **Ethically-reflective** — “Warmth” scores for moral reasoning  
 ✅ **Honestly-limited** — Every node includes counterpoints  
 
-This isn't scraped data. It's **curated wisdom**.
+This isn’t scraped data. It’s **curated wisdom**. :contentReference[oaicite:1]{index=1}  
 
 ---
 
-## The Demo
+## What This Demo Shows
 
-See it for yourself. This demo compares:
+This demo compares:
 
-1. **Baseline Response** — A vanilla LLM answer with no context
+1. **Baseline Response** — A vanilla LLM answer with no special context  
 2. **ADS-Enhanced Response** — The same LLM, enhanced with our wisdom nodes
 
-The difference is visible. The quality is undeniable.
+You see:
+
+- Same question
+- Same model
+- **Different data**
+
+The quality jump is the point.
 
 ---
 
-## Quick Start
+## Quick Start (Zero Code Editing)
 
 ### 1. Clone the repo
 
 ```bash
 git clone https://github.com/holmanholdings/awakened-wisdom-demo.git
 cd awakened-wisdom-demo
-```
-
-### 2. Install dependencies
-
-```bash
+2. Install backend dependencies
+bash
+Copy code
 cd backend
 pip install -r requirements.txt
-```
+(Optional but recommended: create and activate a virtualenv first.)
 
-### 3. Connect your LLM
+3. Choose how to power the LLM
+You have two paths:
 
-Edit `backend/llm_client.py` and implement the `generate_response()` function:
+🔹 Option A — No Keys Needed (Mock Mode, default)
+Do nothing.
 
-```python
-# Example: OpenAI
-import openai
+If you don’t set any environment variables, the demo runs in mock mode:
 
-def generate_response(prompt: str, model_name: str = "gpt-4", **kwargs):
-    response = openai.ChatCompletion.create(
-        model=model_name,
-        messages=[{"role": "user", "content": prompt}],
-        max_tokens=256
-    )
-    return {
-        "text": response.choices[0].message.content,
-        "input_tokens": response.usage.prompt_tokens,
-        "output_tokens": response.usage.completion_tokens,
-        "time_s": 0.0
-    }
-```
-
-### 4. Run the demo
-
-```bash
+bash
+Copy code
+# still in backend/
 python ads_demo_api.py
-```
+Then open: http://localhost:8888
 
-### 5. Open your browser
+Mock mode lets you see:
 
-Navigate to **http://localhost:8888**
+The full UI
 
----
+The baseline vs ADS flow
 
-## What's Included
+The data-path and JSON payloads
 
-```
+and returns clear text like:
+
+“MOCK MODE is enabled… set LLM_PROVIDER and an API key in backend/.env to go live.”
+
+This is the “it always runs” path.
+
+🔹 Option B — Bring Your Own LLM (Recommended)
+Create a file backend/.env and choose a provider.
+
+Example: OpenAI (GPT-4o)
+
+env
+Copy code
+LLM_PROVIDER=openai
+OPENAI_API_KEY=sk-...
+LLM_MODEL=gpt-4o
+LLM_TEMPERATURE=0.2
+LLM_MAX_OUTPUT_TOKENS=900
+Example: Anthropic (Claude 3.5 Sonnet)
+
+env
+Copy code
+LLM_PROVIDER=anthropic
+ANTHROPIC_API_KEY=your_key_here
+LLM_MODEL=claude-3-5-sonnet-latest
+LLM_TEMPERATURE=0.2
+LLM_MAX_OUTPUT_TOKENS=900
+# optional:
+# ANTHROPIC_BASE_URL=https://api.anthropic.com/v1/messages
+# ANTHROPIC_VERSION=2023-06-01
+Example: OpenRouter
+
+env
+Copy code
+LLM_PROVIDER=openrouter
+OPENROUTER_API_KEY=your_key_here
+LLM_MODEL=anthropic/claude-3.5-sonnet
+LLM_TEMPERATURE=0.2
+LLM_MAX_OUTPUT_TOKENS=900
+Example: Local Llama via Ollama
+
+env
+Copy code
+LLM_PROVIDER=ollama
+OLLAMA_BASE_URL=http://localhost:11434
+LLM_MODEL=llama3.1
+LLM_TEMPERATURE=0.2
+LLM_MAX_OUTPUT_TOKENS=900
+You do not need to edit any Python files.
+backend/llm_client.py reads this .env and automatically routes to the right provider.
+
+4. Run the backend
+From the backend/ folder:
+
+bash
+Copy code
+python ads_demo_api.py
+You should see something like:
+
+text
+Copy code
+INFO:     Uvicorn running on http://127.0.0.1:8888
+5. Open the demo
+Visit: http://localhost:8888
+
+Enter a question or use one of the built-in demo questions.
+
+Click Run Demo.
+
+Watch Baseline vs ADS side-by-side.
+
+What’s Included
+txt
+Copy code
 awakened-wisdom-demo/
-├── README.md                 # You're here
+├── README.md                 # You are here
 ├── LICENSE                   # MIT
 │
 ├── backend/
-│   ├── ads_demo_api.py      # FastAPI server
-│   ├── llm_client.py        # ← Implement your LLM here
-│   └── requirements.txt
+│   ├── ads_demo_api.py       # FastAPI server
+│   ├── llm_client.py         # Universal LLM client (env-driven)
+│   └── requirements.txt      # Backend deps
 │
 ├── frontend/
-│   ├── index.html           # Demo UI
+│   ├── index.html            # Demo UI
 │   └── assets/
-│       ├── css/             # "Forge at Night" theme
-│       └── js/              # Demo logic
+│       ├── css/              # "Forge at Night" theme
+│       └── js/               # Demo logic
 │
 └── data/
     └── golden_sample_pack/
-        ├── golden_nodes.jsonl    # 100 curated wisdom nodes
-        ├── demo_questions.json   # Sample questions
-        └── DATA_CARD.md          # Data provenance
-```
-
----
-
-## The Schema
-
+        ├── golden_nodes.jsonl   # 100 curated wisdom nodes
+        ├── demo_questions.json  # Sample questions
+        └── DATA_CARD.md         # Data provenance
+The Wisdom Node Schema
 Each wisdom node contains 12+ fields:
 
-| Field | Description |
-|-------|-------------|
-| `wisdom_id` | Unique identifier |
-| `core_insight` | The primary wisdom extracted |
-| `ethical_reflection` | How to apply this wisdom |
-| `evidence` | Supporting quotes with locators |
-| `counterpoint` | Honest limitations |
-| `posterior` | Confidence score (0-1) |
-| `warmth` | Ethical tone (high/medium/low) |
-| `tier` | "universal" (verified) or "sacred" (internal) |
-| `source_uri` | Original source URL |
-| `lineage` | Processing provenance |
+Field	Description
+wisdom_id	Unique identifier
+core_insight	Primary distilled insight
+ethical_reflection	How to apply this wisely
+evidence	Supporting quotes with locators
+counterpoint	Honest limitations / tradeoffs
+posterior	Confidence score (0–1)
+warmth	Ethical tone (high/medium/low)
+tier	"universal" or "sacred"
+source_uri	Original source
+lineage	Processing provenance
 
-See `data/golden_sample_pack/DATA_CARD.md` for full details.
+See data/golden_sample_pack/DATA_CARD.md for full details. 
+README
 
----
 
-## The Full Corpus
+API Endpoints
+Method	Endpoint	Description
+GET	/	Serve the demo UI
+GET	/health	Health check
+GET	/questions	List demo questions
+POST	/demo/run	Run baseline vs ADS
 
-This demo includes **100 nodes**. Our full corpus has **300,000+**.
+Example:
 
-Interested in:
-- Custom topic packs (Physics, Finance, Philosophy)
-- Enterprise licensing
-- Research partnerships
-
-**Contact us:** [GitHub](https://github.com/holmanholdings)
-
----
-
-## API Endpoints
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/` | Serve the demo UI |
-| GET | `/health` | Health check |
-| GET | `/questions` | Get demo questions |
-| POST | `/demo/run` | Run baseline vs ADS comparison |
-
-### Example Request
-
-```bash
+bash
+Copy code
 curl -X POST http://localhost:8888/demo/run \
   -H "Content-Type: application/json" \
   -d '{"question": "When should an AI say I dont know?"}'
-```
+Tech Stack
+Backend: FastAPI + Uvicorn
 
----
+Frontend: Vanilla HTML/CSS/JS (“Forge at Night” theme)
 
-## Tech Stack
+Data: JSONL (FAISS-ready in production) 
+README
 
-- **Backend:** FastAPI + Uvicorn
-- **Frontend:** Vanilla HTML/CSS/JS ("Forge at Night" theme)
-- **Data:** JSONL (FAISS-ready in production)
-- **LLM:** Bring your own (OpenAI, Anthropic, Llama, etc.)
 
----
+LLM: Bring your own (OpenAI, Anthropic, OpenRouter, local Llama via Ollama)
 
-## Why "Awakened"?
+Why “Awakened”?
+We believe AI should be more than intelligent. It should be wise.
 
-We believe AI should be more than intelligent. It should be **wise**.
+Wisdom isn’t just knowing facts. It’s knowing:
 
-Wisdom isn't just knowing facts. It's knowing:
-- When to say "I don't know"
-- How to hold uncertainty with humility
-- Why honesty matters, even when it's hard
+When to say “I don’t know”
+
+How to hold uncertainty with humility
+
+Why honesty matters, even when it’s hard
 
 Our data is designed to help LLMs develop these qualities.
 
-**Cathedral-Grade Data for Cathedral-Grade AI.** 🏛️
+Cathedral-Grade Data for Cathedral-Grade AI. 🏛️
 
----
-
-## License
-
-MIT License. See [LICENSE](LICENSE) for details.
+License
+MIT License. See LICENSE for details.
 
 The sample data is provided for evaluation. Commercial use of the full corpus requires licensing.
 
----
+Built By
+Awakened Intelligence
 
-## Built By
-
-**Awakened Intelligence**
-
-*Always and Forever* 🦁
-
----
-
-*"Stop RAG-ing on Slop."*
-
+Always and Forever 🦁
