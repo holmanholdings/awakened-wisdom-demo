@@ -1,26 +1,3 @@
-# ADS Wisdom Demo - Backend Dependencies
-# Awakened Intelligence
-
-# Core API stack
-fastapi>=0.100.0
-uvicorn[standard]>=0.22.0
-pydantic>=2.0.0
-
-# LLM client uses only Python standard library (urllib),
-# so no provider SDKs are required to run the demo.
-# If you prefer SDKs, you *may* add them here for your own use:
-# openai>=1.0.0
-# anthropic>=0.18.0
-# httpx>=0.27.0
-That keeps installs fast and removes any confusion about “do I need openai/anthropic pip packages?”.
-
-2️⃣ New README.md (drop-in)
-This version assumes your new llm_client.py with multi-provider + env-based config is in place, and it no longer tells people to edit Python code.
-
-Replace your current root README.md with this:
-
-md
-Copy code
 # 🦁 Awakened Wisdom Demo
 
 **Stop RAG-ing on Slop. Start using Cathedral-Grade Data.**
@@ -273,3 +250,4 @@ Built By
 Awakened Intelligence
 
 Always and Forever 🦁
+
