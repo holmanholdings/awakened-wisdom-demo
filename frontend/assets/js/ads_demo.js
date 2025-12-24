@@ -26,30 +26,29 @@ document.addEventListener("DOMContentLoaded", () => {
   const engineerBody = document.getElementById("engineerBody");
   const toggleEngineerBtn = document.getElementById("toggleEngineerView");
 
-  // ============================================================================
-  // CONFIGURATION - LOCAL ENDPOINT
-  // ============================================================================
-  
-  // Backend endpoints - Running locally on port 8888
+  // ========================================================================
+  // CONFIGURATION - LOCAL ENDPOINTS
+  // ========================================================================
+
   const API_BASE = "http://127.0.0.1:8888";
   const DEMO_API_ENDPOINT = `${API_BASE}/demo/run`;
   const QUESTIONS_ENDPOINT = `${API_BASE}/questions`;
   const HEALTH_ENDPOINT = `${API_BASE}/health`;
-  
-  // Max characters before truncating answer
-  const MAX_ANSWER_CHARS = 600;
-  
-  // Questions loaded from backend (populated at startup)
-  let demoQuestions = [];
-  let packInfo = { name: "Loading...", nodes: 0 };
 
-  // ============================================================================
+  // Max characters to show before truncating answers
+  const MAX_ANSWER_CHARS = 600;
+
+  // Questions + pack info populated at startup
+  let demoQuestions = [];
+  let packInfo = { name: "Loading...", nodes: 0, precomputed: 0 };
+
+  // ========================================================================
   // QUESTION RENDERING
-  // ============================================================================
+  // ========================================================================
 
   function renderQuestions() {
     questionListEl.innerHTML = "";
-    
+
     demoQuestions.forEach((q, idx) => {
       const id = `demoQuestion_${idx}`;
       const wrapper = document.createElement("div");
@@ -81,14 +80,14 @@ document.addEventListener("DOMContentLoaded", () => {
     return checked ? checked.value : null;
   }
 
-  // ============================================================================
+  // ========================================================================
   // STATUS MANAGEMENT
-  // ============================================================================
+  // ========================================================================
 
   function setStatus(status, text) {
     demoStatusEl.textContent = text;
     demoStatusEl.className = "status-pill";
-    
+
     switch (status) {
       case "running":
         demoStatusEl.classList.add("status-running");
@@ -108,9 +107,9 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  // ============================================================================
-  // ANSWER RENDERING WITH TRUNCATION
-  // ============================================================================
+  // ========================================================================
+  // ANSWER RENDERING WITH TRUNCATION + TOGGLE
+  // ========================================================================
 
   function renderAnswerWithToggle(container, text) {
     container.innerHTML = "";
@@ -125,7 +124,6 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    // Truncate at word boundary
     const short = text.slice(0, MAX_ANSWER_CHARS).replace(/\s+\S*$/, "") + "…";
     const full = text;
 
@@ -147,9 +145,9 @@ document.addEventListener("DOMContentLoaded", () => {
     container.appendChild(btn);
   }
 
-  // ============================================================================
+  // ========================================================================
   // DEMO EXECUTION
-  // ============================================================================
+  // ========================================================================
 
   async function runDemo() {
     const question = getSelectedQuestion();
@@ -160,7 +158,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     setStatus("running", "Running comparison...");
 
-    // Show loading state
+    // Show loading placeholders
     baselineAnswerEl.innerHTML = `
       <p class="placeholder-text">
         <span class="loading-dots">
@@ -171,7 +169,7 @@ document.addEventListener("DOMContentLoaded", () => {
         Loading baseline answer...
       </p>
     `;
-    
+
     adsAnswerEl.innerHTML = `
       <p class="placeholder-text">
         <span class="loading-dots">
@@ -182,11 +180,10 @@ document.addEventListener("DOMContentLoaded", () => {
         Loading ADS-enhanced answer...
       </p>
     `;
-    
+
     wisdomListEl.innerHTML = "";
     wisdomContextSection.style.display = "none";
-    
-    // Reset header nodes
+
     if (adsNodesHeaderEl) {
       adsNodesHeaderEl.textContent = "Nodes: —";
     }
@@ -195,9 +192,9 @@ document.addEventListener("DOMContentLoaded", () => {
       const resp = await fetch(DEMO_API_ENDPOINT, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
         },
-        body: JSON.stringify({ question })
+        body: JSON.stringify({ question }),
       });
 
       if (!resp.ok) {
@@ -205,26 +202,29 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       const data = await resp.json();
-      
-      // Populate Baseline (with truncation)
+
+      // Baseline
       const baseline = data.baseline || {};
       renderAnswerWithToggle(baselineAnswerEl, baseline.answer || "");
       baselineTokensEl.textContent = `Tokens: in=${baseline.input_tokens ?? "—"}, out=${baseline.output_tokens ?? "—"}`;
-      baselineTimeEl.textContent = `Time: ${baseline.time_s != null ? baseline.time_s.toFixed(2) + "s" : "—"}`;
+      baselineTimeEl.textContent = `Time: ${
+        baseline.time_s != null ? baseline.time_s.toFixed(2) + "s" : "—"
+      }`;
 
-      // Populate ADS (with truncation)
+      // ADS
       const ads = data.ads || {};
       renderAnswerWithToggle(adsAnswerEl, ads.answer || "");
       adsTokensEl.textContent = `Tokens: in=${ads.input_tokens ?? "—"}, out=${ads.output_tokens ?? "—"}`;
-      adsTimeEl.textContent = `Time: ${ads.time_s != null ? ads.time_s.toFixed(2) + "s" : "—"}`;
+      adsTimeEl.textContent = `Time: ${
+        ads.time_s != null ? ads.time_s.toFixed(2) + "s" : "—"
+      }`;
       adsNodesEl.textContent = `Nodes used: ${ads.nodes_used ?? "—"}`;
-      
-      // Update header nodes badge
+
       if (adsNodesHeaderEl) {
         adsNodesHeaderEl.textContent = `Nodes: ${ads.nodes_used ?? "—"}`;
       }
 
-      // Populate Wisdom Context
+      // Wisdom context bullets
       const bullets = ads.context_bullets || [];
       if (bullets.length > 0) {
         wisdomContextSection.style.display = "block";
@@ -238,47 +238,52 @@ document.addEventListener("DOMContentLoaded", () => {
         wisdomContextSection.style.display = "none";
       }
 
-      // Populate Engineer View
+      // Engineer view: raw metrics
       const raw = data.raw_metrics || data;
       engineerMetricsEl.textContent = JSON.stringify(raw, null, 2);
 
       setStatus("done", "Complete ✓");
 
-      // Auto-scroll to answers
+      // Scroll to answers
       const answersSection = document.querySelector(".baseline-card");
       if (answersSection) {
         answersSection.scrollIntoView({ behavior: "smooth", block: "start" });
       }
-
     } catch (err) {
       console.error("Error running ADS demo:", err);
-      
-      baselineAnswerEl.innerHTML = `<p class="placeholder-text" style="color: var(--error);">Error loading baseline answer.</p>`;
-      adsAnswerEl.innerHTML = `<p class="placeholder-text" style="color: var(--error);">Error loading ADS answer.</p>`;
+
+      baselineAnswerEl.innerHTML =
+        '<p class="placeholder-text" style="color: var(--error);">Error loading baseline answer.</p>';
+      adsAnswerEl.innerHTML =
+        '<p class="placeholder-text" style="color: var(--error);">Error loading ADS answer.</p>';
       wisdomContextSection.style.display = "none";
-      engineerMetricsEl.textContent = `Error: ${err.message}\n\nMake sure the backend is running and accessible at:\n${DEMO_API_ENDPOINT}`;
-      
+      engineerMetricsEl.textContent = `Error: ${
+        err.message || err
+      }\n\nMake sure the backend is running and accessible at:\n${DEMO_API_ENDPOINT}`;
+
       setStatus("error", "Error");
     }
   }
 
-  // ============================================================================
+  // ========================================================================
   // ENGINEER VIEW TOGGLE
-  // ============================================================================
+  // ========================================================================
 
   function toggleEngineerView() {
     engineerBody.classList.toggle("collapsed");
-    toggleEngineerBtn.textContent = engineerBody.classList.contains("collapsed") ? "Show" : "Hide";
+    toggleEngineerBtn.textContent = engineerBody.classList.contains("collapsed")
+      ? "Show"
+      : "Hide";
   }
 
-  // ============================================================================
+  // ========================================================================
   // EVENT LISTENERS
-  // ============================================================================
+  // ========================================================================
 
   runDemoBtn.addEventListener("click", runDemo);
   toggleEngineerBtn.addEventListener("click", toggleEngineerView);
 
-  // Allow clicking anywhere on question option to select it
+  // Make the whole question row clickable
   questionListEl.addEventListener("click", (e) => {
     const option = e.target.closest(".question-option");
     if (option) {
@@ -287,35 +292,42 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // ============================================================================
-  // LOAD QUESTIONS FROM BACKEND
-  // ============================================================================
+  // ========================================================================
+  // LOAD QUESTIONS + PACK INFO FROM BACKEND
+  // ========================================================================
 
   async function loadQuestionsFromBackend() {
     try {
-      // Fetch health info to get pack details
+      // Health info (pack name, node count, precomputed answers)
       const healthResp = await fetch(HEALTH_ENDPOINT);
       if (healthResp.ok) {
         const health = await healthResp.json();
         packInfo.nodes = health.nodes_loaded || 0;
         packInfo.name = health.pack_name || "Unknown";
-        
-        // Update pack badge in UI
+        packInfo.precomputed = health.precomputed_loaded || 0;
+
         const packBadge = document.getElementById("packBadge");
         if (packBadge) {
           packBadge.textContent = `Using ${packInfo.name} Pack`;
         }
-        
-        // Update pack name text
+
         const packNameText = document.getElementById("packNameText");
         if (packNameText) {
           packNameText.textContent = `${packInfo.name} Pack (${packInfo.nodes} nodes)`;
         }
-        
+
+        const footerPackText = document.getElementById("footerPackText");
+        if (footerPackText) {
+          footerPackText.textContent = `${packInfo.name} • ${packInfo.nodes} nodes`;
+        }
+
         console.log(`📦 Pack: ${packInfo.name} (${packInfo.nodes} nodes)`);
+        if (packInfo.precomputed > 0) {
+          console.log(`✨ Precomputed wow-mode answers available (${packInfo.precomputed})`);
+        }
       }
-      
-      // Fetch questions
+
+      // Demo questions
       const questionsResp = await fetch(QUESTIONS_ENDPOINT);
       if (questionsResp.ok) {
         const data = await questionsResp.json();
@@ -327,27 +339,25 @@ document.addEventListener("DOMContentLoaded", () => {
     } catch (err) {
       console.warn("Could not load questions from backend, using fallback:", err);
       packInfo.name = "Offline";
-      // Fallback questions
+
       demoQuestions = [
         "When should an AI say 'I don't know' instead of giving a partial answer?",
         "Why is it dangerous to act confident when you're actually uncertain?",
-        "How should a system respond when the evidence is incomplete or conflicting?"
+        "How should a system respond when the evidence is incomplete or conflicting?",
       ];
     }
-    
-    // Render questions after loading
+
     renderQuestions();
   }
 
-  // ============================================================================
+  // ========================================================================
   // INITIALIZATION
-  // ============================================================================
+  // ========================================================================
 
-  // Initial placeholder
-  questionListEl.innerHTML = '<p class="placeholder-text">Loading questions from backend...</p>';
+  questionListEl.innerHTML =
+    '<p class="placeholder-text">Loading questions from backend...</p>';
   setStatus("idle", "Connecting...");
-  
-  // Load questions from backend, then set ready
+
   loadQuestionsFromBackend().then(() => {
     setStatus("idle", "Ready");
     console.log("🦁 ADS Demo initialized");
@@ -356,4 +366,3 @@ document.addEventListener("DOMContentLoaded", () => {
     console.log(`🔗 API Endpoint: ${DEMO_API_ENDPOINT}`);
   });
 });
-
